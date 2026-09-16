@@ -17,7 +17,47 @@ internal static class ClipboardHelper
     private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(30);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(40);
 
-    public static IDataObject? TryGetDataObject() => Retry(Clipboard.GetDataObject);
+    /// <summary>
+    /// Copies the clipboard's contents out, format by format, rather than
+    /// keeping the object Clipboard.GetDataObject hands back.
+    ///
+    /// That object is a live wrapper over whatever currently owns the clipboard.
+    /// The pipeline clears the clipboard a moment later to capture the
+    /// selection, which kills it, so restoring it afterwards put back nothing
+    /// and left the user's clipboard empty. Reading every format up front costs
+    /// a copy but is the only way to still have the data once it is gone.
+    /// </summary>
+    public static IDataObject? TryCapture() => Retry<IDataObject?>(() =>
+    {
+        IDataObject? live = Clipboard.GetDataObject();
+        if (live is null)
+        {
+            return null;
+        }
+
+        var snapshot = new DataObject();
+        int kept = 0;
+
+        foreach (string format in live.GetFormats(autoConvert: false))
+        {
+            try
+            {
+                object? data = live.GetData(format, autoConvert: false);
+                if (data is not null)
+                {
+                    snapshot.SetData(format, data);
+                    kept++;
+                }
+            }
+            catch (Exception ex) when (ex is ExternalException or NotSupportedException or OutOfMemoryException)
+            {
+                // Delay-rendered formats whose owner will not produce them on
+                // demand. Skipping one is better than losing the rest.
+            }
+        }
+
+        return kept > 0 ? snapshot : null;
+    });
 
     public static bool TryClear() => Retry(() => { Clipboard.Clear(); return true; });
 

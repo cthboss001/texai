@@ -41,7 +41,7 @@ internal static class TransformPipeline
 
     private static async Task<TransformOutcome> CaptureTransformReplaceAsync(HotkeyAction action, IntPtr target)
     {
-        IDataObject? original = ClipboardHelper.TryGetDataObject();
+        IDataObject? original = ClipboardHelper.TryCapture();
 
         if (!ClipboardHelper.TryClear())
         {
