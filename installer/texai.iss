@@ -4,7 +4,7 @@
 ; not a system component.
 
 #define MyAppName "texAi"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "cthboss001"
 #define MyAppExeName "texAi.exe"
 
@@ -43,6 +43,11 @@ Name: "{userstartup}\texAi"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupic
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch texAi now"; Flags: nowait postinstall skipifsilent
+
+; Deliberately not listed under [UninstallDelete]: %AppData%\texAi\settings.json
+; is the user's own hotkeys and model choice, and an uninstall is often a
+; reinstall. It holds nothing sensitive, since no rewritten text is ever
+; written to disk.
 
 [Code]
 procedure KillRunningTexAi;

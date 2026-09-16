@@ -1,0 +1,5 @@
+# Git normalises to LF in the repo and checks out CRLF on Windows. Without
+# this, every file looked modified after a fresh clone on a machine with a
+# different core.autocrlf setting.
+* text=auto eol=crlf
+*.png binary

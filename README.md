@@ -1,43 +1,55 @@
 # texAi
 
-A background Windows utility. Select text anywhere, press a hotkey, the
-selection is rewritten in place by a local Ollama model. No window, no
-tray icon, no settings screen.
+Select text anywhere on Windows, press a hotkey, and a local Ollama model
+rewrites it in place. Grammar, translation, rewording, tone.
 
-Just want to install and use it? See the [user guide](USER_GUIDE.md).
+There is a tray icon and a dashboard, but no window sits in your way: the
+normal case is that you highlight something, press two keys, and the text
+changes.
+
+Want to install and use it rather than build it? See the
+[user guide](USER_GUIDE.md).
 
 ## Why
 
-Cloud rewriting tools mean sending whatever you highlighted to someone
-else's server. This runs entirely against a local Ollama instance
-(`127.0.0.1:11434`) and never touches the network otherwise, so it works
-offline and nothing you select ever leaves the machine.
+Every cloud rewriting tool means sending whatever you highlighted to
+someone else's server. texAi talks to `127.0.0.1:11434` and nothing else.
+It works offline, and the text you select never leaves the machine.
+
+The one file it writes is `%AppData%\texAi\settings.json`, which holds your
+model, tone and hotkeys. Your rewrites are kept in memory for the session
+so the dashboard can show them, and are gone when you quit.
 
 ## Hotkeys
 
-| Hotkey             | Action              |
-|---------------------|---------------------|
-| Ctrl+Shift+G        | Fix grammar         |
-| Ctrl+Shift+T        | Translate to English|
-| Ctrl+Shift+R        | Rewrite             |
-| Ctrl+Shift+F        | Change tone         |
+| Hotkey       | Action               |
+|--------------|----------------------|
+| Ctrl+Alt+G   | Fix grammar          |
+| Ctrl+Alt+T   | Translate to English |
+| Ctrl+Alt+R   | Rewrite              |
+| Ctrl+Alt+F   | Change tone          |
 
-Select text in any app, press the hotkey, the selection is replaced with
-the model's output a moment later. If Ollama isn't running, the model
-doesn't exist, the request times out, or the response is empty, nothing
-happens to your text.
+All four are rebindable in the dashboard.
+
+They used to be Ctrl+Shift. That was a mistake: a global hotkey outranks
+whatever app is focused, so Ctrl+Shift+T took "reopen closed tab" away from
+every browser on the machine, Ctrl+Shift+R took hard reload, and
+Ctrl+Shift+F took find-in-files in VS Code.
 
 ## Install
 
-Requires [Ollama](https://ollama.com) running locally with the model
-pulled:
+You need [Ollama](https://ollama.com/download) running locally, and a model:
 
 ```powershell
 ollama pull qwen2.5:7b
 ```
 
-The model name, endpoint, and default tone are constants in
-[Config.cs](Config.cs) if you want to change them.
+Then run the installer from
+[Releases](https://github.com/cthboss001/texai/releases), or build it
+yourself below. The installer is per-user, so there is no UAC prompt.
+
+texAi does not install Ollama for you. If Ollama is missing or the model
+is not pulled, the dashboard says so and links to the download.
 
 ## Build
 
@@ -45,27 +57,52 @@ The model name, endpoint, and default tone are constants in
 dotnet build -c Release
 ```
 
-## Run
+To produce the single-file exe the installer wraps:
 
 ```powershell
-dotnet publish -c Release -r win-x64 --self-contained true
-.\bin\Release\net8.0-windows\win-x64\publish\texAi.exe
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish-single
 ```
 
-It exits immediately if another instance is already running. To stop it
-during development, kill it from Task Manager.
+It is around 160 MB because it carries the whole .NET desktop runtime.
+The installer's LZMA2 compresses that to roughly 50 MB.
 
 ## How it works
 
 ```text
 Global hotkey
-  -> save current clipboard
+  -> wait for you to let go of the chord
+  -> save your clipboard
   -> Ctrl+C (synthetic, via SendInput)
-  -> read selection from clipboard
+  -> read the selection from the clipboard
   -> POST /api/generate to Ollama
-  -> Ctrl+V the result back in
-  -> restore original clipboard
+  -> Ctrl+V the result back over the selection
+  -> restore your clipboard
 ```
 
-Only one transformation runs at a time; a hotkey pressed while one is in
-flight is dropped. Nothing processed is ever written to disk or logged.
+That first step matters more than it looks. A global hotkey fires on
+key-down, so when texAi runs you are still physically holding the chord.
+Injecting Ctrl+C on top of a held Shift makes the target app see
+Ctrl+Shift+C, which in Firefox and Chrome opens the DevTools element
+picker and copies nothing. texAi polls `GetAsyncKeyState` until the
+modifiers are released, then forces key-ups if you are still holding after
+400ms, and proceeds either way.
+
+One transformation runs at a time; a hotkey pressed while one is in flight
+is ignored. Every failure path leaves your selected text exactly as it was.
+
+## When it does not work
+
+Failures used to be one red dot. Now the dashboard's Errors section says
+which of these it was: nothing selected, the app you are in stopped
+responding, the clipboard is locked, Ollama is not running, the model is
+not installed, the request timed out, or the model returned nothing.
+
+texAi sends `keep_alive: 30m` on every request and preloads the model at
+startup. Ollama unloads an idle model after about five minutes, and
+reloading it plus the one-time CUDA warmup could outlast the 60 second
+timeout, which is why it used to fail after a break.
+
+## Files
+
+`settings.json` in `%AppData%\texAi` is the only thing written to disk.
+Delete it to go back to defaults. It is plain JSON and safe to hand-edit.
