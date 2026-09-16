@@ -9,9 +9,16 @@
     <Nullable>enable</Nullable>
     <RootNamespace>texAi</RootNamespace>
     <AssemblyName>texAi</AssemblyName>
-    <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
+
+  <!--
+    InvariantGlobalization is deliberately absent. It was set while this was a
+    WinForms app, where nothing noticed. WPF's font cache constructs a
+    CultureInfo for every major language to work out which typographic features
+    a face supports, and in invariant mode that throws on the first TextBlock
+    that lays out, taking the process with it.
+  -->
 
   <!--
     WinForms is still referenced, but only for NotifyIcon (WPF has no tray API)

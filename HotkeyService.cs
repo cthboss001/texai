@@ -65,6 +65,15 @@ internal sealed class HotkeyService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Drops every registration so the chords reach the focused window instead.
+    /// Used while the dashboard is capturing a new binding: otherwise Windows
+    /// would route the chord being edited straight back here.
+    /// </summary>
+    public void Suspend() => UnregisterAll();
+
+    public void Resume() => Apply(SettingsStore.Current.Bindings);
+
     private IntPtr OnMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == NativeMethods.WM_HOTKEY && _byId.TryGetValue(wParam.ToInt32(), out HotkeyAction action))

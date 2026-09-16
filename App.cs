@@ -10,8 +10,10 @@ namespace texAi;
 /// </summary>
 internal sealed class App : Application
 {
-    private HotkeyService? _hotkeys;
     private TrayIcon? _tray;
+
+    /// <summary>Exposed so the dashboard can suspend the chords while rebinding one.</summary>
+    public static HotkeyService? Hotkeys { get; private set; }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -29,8 +31,12 @@ internal sealed class App : Application
         // colours with StaticResource at load time.
         ProgressIndicatorWindow.Instance.Prepare();
 
-        _hotkeys = new HotkeyService();
-        _hotkeys.Apply(Config.DefaultHotkeys);
+        Hotkeys = new HotkeyService();
+        Hotkeys.Apply(SettingsStore.Current.Bindings);
+
+        // Rebinding a hotkey in the dashboard saves, which fires this, which
+        // re-registers the whole set. Nothing else has to know about the change.
+        SettingsStore.Changed += settings => Hotkeys?.Apply(settings.Bindings);
 
         _tray = new TrayIcon();
 
@@ -42,7 +48,7 @@ internal sealed class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _tray?.Dispose();
-        _hotkeys?.Dispose();
+        Hotkeys?.Dispose();
         base.OnExit(e);
     }
 }

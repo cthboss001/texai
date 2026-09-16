@@ -12,6 +12,9 @@ internal enum FailureKind
     /// <summary>RegisterHotKey was refused, almost always by another app owning the chord.</summary>
     HotkeyUnavailable,
 
+    /// <summary>settings.json could not be read or written; defaults are in use.</summary>
+    SettingsUnavailable,
+
     /// <summary>Synthetic Ctrl+C produced nothing and the target app is responsive.</summary>
     NoTextSelected,
 
@@ -54,6 +57,7 @@ internal sealed record TransformOutcome(
     {
         FailureKind.None => "OK",
         FailureKind.HotkeyUnavailable => $"Another app already owns that hotkey{Suffix()}",
+        FailureKind.SettingsUnavailable => $"Settings file unavailable{Suffix()}",
         FailureKind.NoTextSelected => "Nothing was selected",
         FailureKind.ClipboardLocked => "Clipboard is locked by another app",
         FailureKind.TargetAppNotResponding => "The app you're in stopped responding",

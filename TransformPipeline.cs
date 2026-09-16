@@ -33,7 +33,7 @@ internal static class TransformPipeline
         else
         {
             indicator.Fail();
-            ErrorLog.Record(action, outcome, Config.ModelName);
+            ErrorLog.Record(action, outcome, SettingsStore.Current.Model);
         }
 
         return outcome;

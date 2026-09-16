@@ -24,42 +24,15 @@ internal static class OllamaClient
     private const int DetailMaxChars = 200;
 
     /// <summary>
-    /// True if Ollama is reachable and the configured model is pulled.
+    /// True if Ollama is reachable and the active model is pulled.
     /// Used for the tray icon's status, not the transform pipeline.
     /// </summary>
     public static async Task<bool> CheckHealthAsync()
     {
-        try
-        {
-            using var response = await Http.GetAsync($"{Config.OllamaEndpoint}/api/tags");
-            if (!response.IsSuccessStatusCode)
-            {
-                return false;
-            }
+        IReadOnlyList<InstalledModel>? installed = await ModelService.ListAsync();
 
-            string body = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(body);
-
-            if (!doc.RootElement.TryGetProperty("models", out JsonElement models))
-            {
-                return false;
-            }
-
-            foreach (JsonElement model in models.EnumerateArray())
-            {
-                if (model.TryGetProperty("name", out JsonElement nameProp) &&
-                    string.Equals(nameProp.GetString(), Config.ModelName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        catch
-        {
-            return false;
-        }
+        return installed is not null &&
+               installed.Any(m => string.Equals(m.Name, SettingsStore.Current.Model, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -73,11 +46,11 @@ internal static class OllamaClient
     {
         try
         {
-            using var content = JsonBody(new
+            using StringContent content = JsonBody(new
             {
-                model = Config.ModelName,
+                model = SettingsStore.Current.Model,
                 prompt = string.Empty,
-                keep_alive = Config.KeepAlive,
+                keep_alive = SettingsStore.Current.KeepAlive,
             });
 
             using HttpResponseMessage response = await Http.PostAsync($"{Config.OllamaEndpoint}/api/generate", content);
@@ -89,34 +62,38 @@ internal static class OllamaClient
         }
     }
 
-    public static async Task<TransformOutcome> TransformAsync(HotkeyAction action, string input)
+    public static Task<TransformOutcome> TransformAsync(HotkeyAction action, string input)
     {
-        string instruction = action switch
-        {
-            HotkeyAction.Grammar => Config.GrammarPrompt,
-            HotkeyAction.Translate => Config.TranslatePrompt,
-            HotkeyAction.Rewrite => Config.RewritePrompt,
-            HotkeyAction.Tone => Config.TonePrompt(Config.DefaultTone),
-            _ => throw new ArgumentOutOfRangeException(nameof(action)),
-        };
+        AppSettings settings = SettingsStore.Current;
+        string instruction = Config.PromptFor(action, settings.Tone);
 
+        return GenerateAsync(settings.Model, $"{instruction}\n\n{input}");
+    }
+
+    /// <summary>
+    /// One non-streaming generate call, with every way it can fail mapped to a
+    /// distinct <see cref="FailureKind"/>. The compare panel calls this directly
+    /// with a model other than the active one.
+    /// </summary>
+    public static async Task<TransformOutcome> GenerateAsync(string model, string prompt, CancellationToken cancellationToken = default)
+    {
         var payload = new
         {
-            model = Config.ModelName,
-            prompt = $"{instruction}\n\n{input}",
+            model,
+            prompt,
             stream = false,
-            keep_alive = Config.KeepAlive,
+            keep_alive = SettingsStore.Current.KeepAlive,
         };
 
         try
         {
             using StringContent content = JsonBody(payload);
-            using HttpResponseMessage response = await Http.PostAsync($"{Config.OllamaEndpoint}/api/generate", content);
-            string body = await response.Content.ReadAsStringAsync();
+            using HttpResponseMessage response = await Http.PostAsync($"{Config.OllamaEndpoint}/api/generate", content, cancellationToken);
+            string body = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
-                return ClassifyHttpFailure(response.StatusCode, body);
+                return ClassifyHttpFailure(response.StatusCode, body, model);
             }
 
             using var doc = JsonDocument.Parse(body);
@@ -138,10 +115,10 @@ internal static class OllamaClient
         {
             return TransformOutcome.Failure(FailureKind.OllamaUnreachable, Truncate(ex.Message));
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            // HttpClient surfaces its own timeout as a cancellation. Nothing
-            // else cancels this request, so there is no ambiguity to resolve.
+            // HttpClient surfaces its own timeout as a cancellation, which is
+            // only distinguishable from a real one by checking the token.
             return TransformOutcome.Failure(FailureKind.Timeout, $"no reply within {Http.Timeout.TotalSeconds:0}s");
         }
         catch (JsonException ex)
@@ -155,14 +132,14 @@ internal static class OllamaClient
     /// "model 'x' not found, try pulling it first", which is worth separating
     /// from a genuine bad request: one is fixed by a download, the other is a bug.
     /// </summary>
-    private static TransformOutcome ClassifyHttpFailure(HttpStatusCode status, string body)
+    private static TransformOutcome ClassifyHttpFailure(HttpStatusCode status, string body, string model)
     {
         int code = (int)status;
 
         if (status == HttpStatusCode.NotFound &&
             body.Contains("pulling", StringComparison.OrdinalIgnoreCase))
         {
-            return TransformOutcome.Failure(FailureKind.ModelNotInstalled, Config.ModelName, code);
+            return TransformOutcome.Failure(FailureKind.ModelNotInstalled, model, code);
         }
 
         return TransformOutcome.Failure(FailureKind.HttpError, Truncate(ExtractError(body)), code);

@@ -106,6 +106,16 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern uint GetDpiForWindow(IntPtr hWnd);
 
+    /// <summary>
+    /// Dark title bar. Without it the dashboard's chrome stays light while its
+    /// contents are dark, which reads as a bug rather than a theme. Supported
+    /// from Windows 10 2004; the call simply fails on anything older.
+    /// </summary>
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
     public const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 
     /// <summary>

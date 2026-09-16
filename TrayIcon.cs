@@ -60,15 +60,24 @@ internal sealed class TrayIcon : IDisposable
     private async Task RefreshStatusAsync()
     {
         bool healthy = await OllamaClient.CheckHealthAsync();
+        string model = SettingsStore.Current.Model;
 
         _notifyIcon.Icon = healthy ? _iconOk : _iconError;
-        _notifyIcon.Text = healthy
-            ? $"texAi - connected ({Config.ModelName})"
-            : "texAi - Ollama not reachable";
-        _statusMenuItem.Text = healthy
-            ? $"Connected - {Config.ModelName}"
-            : "Ollama not reachable";
+
+        // NotifyIcon.Text is capped at 63 characters by the shell, and silently
+        // throws above it, so the last failure is trimmed rather than appended
+        // in full.
+        string status = healthy ? $"connected, {model}" : LastProblem();
+        _notifyIcon.Text = Trim($"texAi - {status}", 63);
+
+        _statusMenuItem.Text = healthy ? $"Connected - {model}" : LastProblem();
     }
+
+    private static string LastProblem() =>
+        ErrorLog.Latest()?.Description ?? "Ollama not reachable";
+
+    private static string Trim(string value, int max) =>
+        value.Length <= max ? value : value[..(max - 3)] + "...";
 
     private void ExitApplication()
     {
