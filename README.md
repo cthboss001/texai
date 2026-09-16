@@ -3,6 +3,8 @@
 Select text anywhere on Windows, press a hotkey, and a local Ollama model
 rewrites it in place. Grammar, translation, rewording, tone.
 
+![Fixing a sentence in Notepad with Ctrl+Alt+G](docs/demo.gif)
+
 There is a tray icon and a dashboard, but no window sits in your way: the
 normal case is that you highlight something, press two keys, and the text
 changes.

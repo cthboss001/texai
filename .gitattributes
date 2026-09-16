@@ -3,3 +3,5 @@
 # different core.autocrlf setting.
 * text=auto eol=crlf
 *.png binary
+*.gif binary
+*.mp4 binary

@@ -8,13 +8,19 @@ namespace texAi;
 ///
 /// The Win32 clipboard is a single global resource that any process can hold
 /// open; OLE surfaces that contention as an ExternalException, and clipboard
-/// managers make it routine rather than rare. Each operation gets three quick
-/// attempts before it is treated as a real failure.
+/// managers, sync agents and remote desktop clients make that routine rather
+/// than rare.
+///
+/// The retry budget used to be three attempts 30ms apart, so texAi gave up
+/// after 90ms and reported "clipboard is locked". That is far too impatient:
+/// a single rewrite failed this way during an otherwise clean run. Attempts
+/// now back off over roughly a second, which is long enough to outlast a
+/// clipboard manager's own read and still short enough that a genuinely stuck
+/// clipboard does not leave the user watching a spinner.
 /// </summary>
 internal static class ClipboardHelper
 {
-    private const int Retries = 3;
-    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(30);
+    private static readonly int[] BackoffMs = [0, 25, 50, 90, 150, 220, 300, 400];
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(40);
 
     /// <summary>
@@ -124,15 +130,20 @@ internal static class ClipboardHelper
 
     private static T? Retry<T>(Func<T> operation)
     {
-        for (int attempt = 0; attempt < Retries; attempt++)
+        foreach (int delay in BackoffMs)
         {
+            if (delay > 0)
+            {
+                Thread.Sleep(delay);
+            }
+
             try
             {
                 return operation();
             }
             catch (ExternalException)
             {
-                Thread.Sleep(RetryDelay);
+                // Someone else has the clipboard open. Wait longer and retry.
             }
         }
 
