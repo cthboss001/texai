@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
@@ -10,14 +12,16 @@ namespace texAi;
 /// </summary>
 internal static class OllamaClient
 {
-    // 60s, not 30s: Ollama unloads an idle model after a few minutes, and
-    // reloading it plus a one-time CUDA kernel compile can take 30-40s on
-    // the first request back. A tighter timeout would misfire as a silent
-    // failure on exactly the case that matters most: coming back to it.
+    // 60s, not 30s: even with keep_alive set, the very first request after
+    // Ollama itself starts has to load weights from disk and compile CUDA
+    // kernels. A tighter timeout would misfire on exactly the case that
+    // matters most, the first rewrite of the day.
     private static readonly HttpClient Http = new()
     {
         Timeout = TimeSpan.FromSeconds(60),
     };
+
+    private const int DetailMaxChars = 200;
 
     /// <summary>
     /// True if Ollama is reachable and the configured model is pulled.
@@ -58,7 +62,34 @@ internal static class OllamaClient
         }
     }
 
-    public static async Task<string?> TransformAsync(HotkeyAction action, string input)
+    /// <summary>
+    /// Loads the model into VRAM without generating anything. Ollama treats a
+    /// generate call with an empty prompt as a preload, so one of these at
+    /// startup absorbs the multi-second cold start instead of the user's first
+    /// hotkey press absorbing it. Failure is ignored: Ollama may simply not be
+    /// running yet, and the tray icon already reports that.
+    /// </summary>
+    public static async Task WarmAsync()
+    {
+        try
+        {
+            using var content = JsonBody(new
+            {
+                model = Config.ModelName,
+                prompt = string.Empty,
+                keep_alive = Config.KeepAlive,
+            });
+
+            using HttpResponseMessage response = await Http.PostAsync($"{Config.OllamaEndpoint}/api/generate", content);
+            _ = response;
+        }
+        catch
+        {
+            // Nothing to do and nothing to report: this is opportunistic.
+        }
+    }
+
+    public static async Task<TransformOutcome> TransformAsync(HotkeyAction action, string input)
     {
         string instruction = action switch
         {
@@ -74,33 +105,90 @@ internal static class OllamaClient
             model = Config.ModelName,
             prompt = $"{instruction}\n\n{input}",
             stream = false,
+            keep_alive = Config.KeepAlive,
         };
 
         try
         {
-            using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            using var response = await Http.PostAsync($"{Config.OllamaEndpoint}/api/generate", content);
+            using StringContent content = JsonBody(payload);
+            using HttpResponseMessage response = await Http.PostAsync($"{Config.OllamaEndpoint}/api/generate", content);
+            string body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
-                return null;
+                return ClassifyHttpFailure(response.StatusCode, body);
             }
 
-            string body = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(body);
-
             if (!doc.RootElement.TryGetProperty("response", out JsonElement responseElement))
             {
-                return null;
+                return TransformOutcome.Failure(FailureKind.EmptyResponse, "no 'response' field in the reply");
             }
 
-            return responseElement.GetString()?.Trim();
+            string? text = responseElement.GetString()?.Trim();
+            return string.IsNullOrWhiteSpace(text)
+                ? TransformOutcome.Failure(FailureKind.EmptyResponse)
+                : TransformOutcome.Success(text);
         }
-        catch
+        catch (HttpRequestException ex) when (ex.InnerException is SocketException)
         {
-            // Ollama not running, model missing, timeout, malformed JSON, etc.
-            // Fail silently: the caller treats null as "do nothing".
-            return null;
+            return TransformOutcome.Failure(FailureKind.OllamaUnreachable, $"{Config.OllamaEndpoint} refused the connection");
+        }
+        catch (HttpRequestException ex)
+        {
+            return TransformOutcome.Failure(FailureKind.OllamaUnreachable, Truncate(ex.Message));
+        }
+        catch (TaskCanceledException)
+        {
+            // HttpClient surfaces its own timeout as a cancellation. Nothing
+            // else cancels this request, so there is no ambiguity to resolve.
+            return TransformOutcome.Failure(FailureKind.Timeout, $"no reply within {Http.Timeout.TotalSeconds:0}s");
+        }
+        catch (JsonException ex)
+        {
+            return TransformOutcome.Failure(FailureKind.HttpError, $"unreadable reply: {Truncate(ex.Message)}");
         }
     }
+
+    /// <summary>
+    /// Ollama answers a missing model with 404 and a body along the lines of
+    /// "model 'x' not found, try pulling it first", which is worth separating
+    /// from a genuine bad request: one is fixed by a download, the other is a bug.
+    /// </summary>
+    private static TransformOutcome ClassifyHttpFailure(HttpStatusCode status, string body)
+    {
+        int code = (int)status;
+
+        if (status == HttpStatusCode.NotFound &&
+            body.Contains("pulling", StringComparison.OrdinalIgnoreCase))
+        {
+            return TransformOutcome.Failure(FailureKind.ModelNotInstalled, Config.ModelName, code);
+        }
+
+        return TransformOutcome.Failure(FailureKind.HttpError, Truncate(ExtractError(body)), code);
+    }
+
+    private static string ExtractError(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out JsonElement error))
+            {
+                return error.GetString() ?? body;
+            }
+        }
+        catch (JsonException)
+        {
+            // Not JSON; the raw body is the best detail available.
+        }
+
+        return body;
+    }
+
+    private static string Truncate(string value) =>
+        value.Length <= DetailMaxChars ? value : value[..DetailMaxChars] + "...";
+
+    private static StringContent JsonBody(object payload) =>
+        new(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 }

@@ -13,9 +13,21 @@ internal static class NativeMethods
     public const uint MOD_SHIFT = 0x0004;
     public const uint MOD_NOREPEAT = 0x4000;
 
+    public const ushort VK_SHIFT = 0x10;
     public const ushort VK_CONTROL = 0x11;
+    public const ushort VK_MENU = 0x12;
+    public const ushort VK_LWIN = 0x5B;
+    public const ushort VK_RWIN = 0x5C;
+
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint INPUT_KEYBOARD = 1;
+
+    /// <summary>
+    /// Stamped into dwExtraInfo on every key event texAi injects, so our own
+    /// synthetic input is distinguishable from the user's real typing. Nothing
+    /// reads it yet; it exists so a future low-level hook does not have to guess.
+    /// </summary>
+    public static readonly IntPtr InjectedTag = new(0x7E7A4149);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -26,8 +38,20 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
+    /// <summary>
+    /// High bit set means the key is physically down right now. Unlike
+    /// GetKeyState this does not depend on the calling thread's input queue
+    /// having processed the message, which matters here because we are asking
+    /// about keys being held in a different process's foreground window.
+    /// </summary>
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern bool IsHungAppWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);

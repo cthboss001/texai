@@ -22,6 +22,11 @@ internal static class Program
 
         _ = new HotkeyWindow();
         using var trayIcon = new TrayIcon();
+
+        // Pay the model's load-and-warm cost now, in the background, rather than
+        // charging it to whichever hotkey the user presses first.
+        _ = OllamaClient.WarmAsync();
+
         Application.Run();
     }
 }

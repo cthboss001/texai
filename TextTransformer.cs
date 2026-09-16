@@ -15,48 +15,83 @@ internal static class TextTransformer
     private static readonly TimeSpan ClipboardRetryDelay = TimeSpan.FromMilliseconds(30);
     private static readonly TimeSpan CaptureTimeout = TimeSpan.FromMilliseconds(1200);
 
-    public static async Task RunAsync(HotkeyAction action)
+    public static async Task<TransformOutcome> RunAsync(HotkeyAction action)
     {
+        // Read this before the indicator appears. The indicator is WS_EX_NOACTIVATE
+        // so it should not take focus, but the window we blame for a failed copy
+        // has to be the one the user was actually typing in.
+        IntPtr target = NativeMethods.GetForegroundWindow();
+
         var indicator = new ProgressIndicator();
         indicator.ShowNear(CaretLocator.GetAnchorPoint());
 
+        TransformOutcome outcome = await CaptureTransformReplaceAsync(action, target);
+
+        if (outcome.Ok)
+        {
+            indicator.Complete();
+        }
+        else
+        {
+            indicator.Fail();
+            ErrorLog.Record(action, outcome, Config.ModelName);
+        }
+
+        return outcome;
+    }
+
+    private static async Task<TransformOutcome> CaptureTransformReplaceAsync(HotkeyAction action, IntPtr target)
+    {
         IDataObject? original = TryGetClipboardData();
 
         if (!TryClearClipboard())
         {
-            indicator.Fail();
-            return;
+            return TransformOutcome.Failure(FailureKind.ClipboardLocked, "could not clear the clipboard to capture the selection");
         }
 
-        InputSimulator.SendCtrlC();
+        // Waits for the user to let go of the hotkey chord before injecting,
+        // so the target app sees a bare Ctrl+C. See InputSimulator.
+        await InputSimulator.SendCtrlCAsync();
 
         string? selected = await WaitForClipboardTextAsync(CaptureTimeout);
         if (string.IsNullOrWhiteSpace(selected))
         {
-            indicator.Fail();
             TryRestoreClipboard(original);
-            return;
+            return ClassifyEmptyCapture(target);
         }
 
-        string? result = await OllamaClient.TransformAsync(action, selected);
-        if (string.IsNullOrWhiteSpace(result))
+        TransformOutcome result = await OllamaClient.TransformAsync(action, selected);
+        if (!result.Ok)
         {
-            indicator.Fail();
             TryRestoreClipboard(original);
-            return;
+            return result;
         }
 
-        if (!TrySetClipboardText(result))
+        if (!TrySetClipboardText(result.Text!))
         {
-            indicator.Fail();
             TryRestoreClipboard(original);
-            return;
+            return TransformOutcome.Failure(FailureKind.ClipboardLocked, "could not put the result on the clipboard to paste it");
         }
 
-        InputSimulator.SendCtrlV();
-        indicator.Complete();
+        await InputSimulator.SendCtrlVAsync();
         await Task.Delay(250);
         TryRestoreClipboard(original);
+        return result;
+    }
+
+    /// <summary>
+    /// Nothing arrived on the clipboard. Usually that means nothing was selected,
+    /// but a wedged app also swallows Ctrl+C, and telling the user to select some
+    /// text when the real problem is that Word is frozen is worse than saying
+    /// nothing at all.
+    /// </summary>
+    private static TransformOutcome ClassifyEmptyCapture(IntPtr target)
+    {
+        bool hung = target != IntPtr.Zero && NativeMethods.IsHungAppWindow(target);
+
+        return hung
+            ? TransformOutcome.Failure(FailureKind.TargetAppNotResponding)
+            : TransformOutcome.Failure(FailureKind.NoTextSelected);
     }
 
     private static async Task<string?> WaitForClipboardTextAsync(TimeSpan timeout)

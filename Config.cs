@@ -12,6 +12,16 @@ internal static class Config
 
     public const string DefaultTone = "Professional";
 
+    /// <summary>
+    /// How long Ollama should hold the model in VRAM after a request. It unloads
+    /// after about 5 minutes by default, and the reload plus one-time CUDA kernel
+    /// compile can outlast the request timeout, which is why a hotkey pressed
+    /// after a break used to fail for no visible reason. "30m" covers a working
+    /// session; -1 would pin roughly 5GB forever, which on a 6GB card is not a
+    /// trade worth making.
+    /// </summary>
+    public const string KeepAlive = "30m";
+
     public const string GrammarPrompt =
         "Fix grammar, spelling, punctuation, and unnatural phrasing. " +
         "Preserve the original meaning. Return only the corrected text.";

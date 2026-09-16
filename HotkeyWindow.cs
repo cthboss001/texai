@@ -66,7 +66,7 @@ internal sealed class HotkeyWindow : NativeWindow
         _busy = true;
         try
         {
-            await TextTransformer.RunAsync(action.Value);
+            _ = await TextTransformer.RunAsync(action.Value);
         }
         finally
         {
