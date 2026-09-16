@@ -1,0 +1,428 @@
+<Window x:Class="texAi.Ui.DashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:texAi.Ui"
+        x:ClassModifier="internal"
+        Title="texAi"
+        Width="980" Height="700"
+        MinWidth="820" MinHeight="540"
+        Background="{StaticResource SurfaceBase}"
+        TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="Show" />
+        <ui:InverseBoolToVisibility x:Key="ShowWhenFalse" />
+        <ui:NotNullToVisibility x:Key="ShowWhenSet" />
+        <ui:ActionLabel x:Key="ActionLabel" />
+        <ui:TightFitBrush x:Key="FitBrush" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="188" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left rail -->
+        <Border Grid.Column="0"
+                Background="{StaticResource SurfaceSunken}"
+                BorderBrush="{StaticResource Hairline}"
+                BorderThickness="0,0,1,0">
+            <DockPanel Margin="14,20,14,16">
+
+                <StackPanel DockPanel.Dock="Top" Margin="6,0,0,22">
+                    <TextBlock Text="texAi" FontFamily="{StaticResource ProseFont}"
+                               FontSize="{StaticResource SizeDisplay}"
+                               Foreground="{StaticResource TextPrimary}" />
+                    <DockPanel Margin="0,7,0,0" LastChildFill="True">
+                        <Ellipse Width="7" Height="7" VerticalAlignment="Top" Margin="0,5,0,0" DockPanel.Dock="Left">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{StaticResource Error}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Connected}" Value="True">
+                                            <Setter Property="Fill" Value="{StaticResource Success}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding StatusText}" Style="{StaticResource Caption}" Margin="7,0,0,0" />
+                    </DockPanel>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Border Style="{StaticResource Divider}" Margin="6,0,6,12" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="6,0" Text="Settings are the only thing written to disk. Rewrites stay in memory." />
+                </StackPanel>
+
+                <StackPanel>
+                    <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Content="Activity"
+                                 IsChecked="{Binding OnActivity, Mode=TwoWay}" />
+                    <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Content="Errors"
+                                 IsChecked="{Binding OnErrors, Mode=TwoWay}" />
+                    <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Content="Models"
+                                 IsChecked="{Binding OnModels, Mode=TwoWay}" />
+                    <RadioButton Style="{StaticResource NavItem}" GroupName="nav" Content="Settings"
+                                 IsChecked="{Binding OnSettings, Mode=TwoWay}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+            <StackPanel Margin="30,26,26,34">
+
+                <!-- Shown whenever the setup is unusable, not just on first run:
+                     Ollama can be stopped or a model deleted at any time. -->
+                <Border Style="{StaticResource Panel}"
+                        Margin="0,0,0,24"
+                        BorderBrush="{StaticResource AccentSunk}"
+                        Visibility="{Binding NeedsOnboarding, Converter={StaticResource Show}}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Heading}" Text="texAi cannot rewrite anything yet" />
+                        <TextBlock Style="{StaticResource Prose}" Margin="0,9,0,0" Foreground="{StaticResource TextSecondary}"
+                                   Text="It needs Ollama running on this machine, with a model pulled. texAi never installs or downloads Ollama itself." />
+                        <StackPanel Orientation="Horizontal" Margin="0,15,0,0">
+                            <Button Content="Get Ollama" Click="OnOpenOllamaSite" Style="{StaticResource PrimaryButton}" />
+                            <Button Content="Check again" Command="{Binding RefreshCommand}" Margin="9,0,0,0" />
+                            <Button Content="Choose a model" Click="OnGoToModels" Margin="9,0,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ===================== Activity ===================== -->
+                <StackPanel Visibility="{Binding OnActivity, Converter={StaticResource Show}}">
+
+                    <TextBlock Style="{StaticResource Heading}" Text="This session" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,5,0,20"
+                               Text="Cleared when texAi exits. Nothing here is ever written to disk." />
+
+                    <Grid Margin="0,0,0,26">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Style="{StaticResource Panel}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Subheading}" Text="Latest rewrite" />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0"
+                                           Visibility="{Binding LatestRewrite, Converter={StaticResource ShowWhenSet}}"
+                                           Text="{Binding LatestRewrite.Before}" />
+                                <TextBlock Style="{StaticResource Prose}" Margin="0,7,0,0"
+                                           Visibility="{Binding LatestRewrite, Converter={StaticResource ShowWhenSet}}"
+                                           Text="{Binding LatestRewrite.After}" />
+                                <TextBlock Margin="0,10,0,0" Text="Nothing yet.">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding LatestRewrite}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2" Style="{StaticResource Panel}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Subheading}" Text="Latest grammar fix" />
+                                <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0"
+                                           Visibility="{Binding LatestGrammar, Converter={StaticResource ShowWhenSet}}"
+                                           Text="{Binding LatestGrammar.Before}" />
+                                <TextBlock Style="{StaticResource Prose}" Margin="0,7,0,0"
+                                           Visibility="{Binding LatestGrammar, Converter={StaticResource ShowWhenSet}}"
+                                           Text="{Binding LatestGrammar.After}" />
+                                <TextBlock Margin="0,10,0,0" Text="Nothing yet.">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource Caption}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding LatestGrammar}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <DockPanel Margin="0,0,0,10">
+                        <Button DockPanel.Dock="Right" Content="Clear" Style="{StaticResource QuietButton}"
+                                Command="{Binding ClearHistoryCommand}"
+                                Visibility="{Binding HasHistory, Converter={StaticResource Show}}" />
+                        <TextBlock Style="{StaticResource Subheading}" Text="Everything, newest first" VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <TextBlock Style="{StaticResource Caption}"
+                               Visibility="{Binding HasHistory, Converter={StaticResource ShowWhenFalse}}"
+                               Text="Select some text anywhere and press a hotkey. It will show up here." />
+
+                    <ItemsControl ItemsSource="{Binding History}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,0,0,1" Padding="2,13">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Numeric}" Text="{Binding Timestamp, StringFormat=HH:mm:ss}" />
+                                            <TextBlock Style="{StaticResource Caption}" Margin="11,0,0,0"
+                                                       Foreground="{StaticResource Accent}"
+                                                       Text="{Binding Action, Converter={StaticResource ActionLabel}}" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,7,0,0" Text="{Binding Before}" />
+                                        <TextBlock Style="{StaticResource Prose}" Margin="0,4,0,0" Text="{Binding After}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ===================== Errors ===================== -->
+                <StackPanel Visibility="{Binding OnErrors, Converter={StaticResource Show}}">
+
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Clear" Style="{StaticResource QuietButton}"
+                                Command="{Binding ClearErrorsCommand}" />
+                        <TextBlock Style="{StaticResource Heading}" Text="What went wrong" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,5,0,20"
+                               Text="The last 200 failures, with the reason. Your text is never recorded here, only what failed." />
+
+                    <ItemsControl ItemsSource="{Binding Errors}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,0,0,1" Padding="2,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Style="{StaticResource Numeric}"
+                                                   Margin="0,2,16,0" VerticalAlignment="Top"
+                                                   Text="{Binding Timestamp, StringFormat=HH:mm:ss}" />
+
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Style="{StaticResource Prose}" Foreground="{StaticResource Error}"
+                                                       Text="{Binding Description}" />
+                                            <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0"
+                                                       Visibility="{Binding Detail, Converter={StaticResource ShowWhenSet}}"
+                                                       Text="{Binding Detail}" />
+                                            <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0"
+                                                       Visibility="{Binding Action, Converter={StaticResource ShowWhenSet}}"
+                                                       Text="{Binding Action, Converter={StaticResource ActionLabel}}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ===================== Models ===================== -->
+                <StackPanel Visibility="{Binding OnModels, Converter={StaticResource Show}}">
+
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Refresh" Style="{StaticResource QuietButton}"
+                                Command="{Binding RefreshCommand}" />
+                        <TextBlock Style="{StaticResource Heading}" Text="Installed" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,5,0,16"
+                               Text="Models live in your Ollama folder, not texAi's. Anything over 5.5 GB is flagged: on a 6 GB card the KV cache pushes it onto the CPU." />
+
+                    <ItemsControl ItemsSource="{Binding Installed}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource Hairline}" BorderThickness="0,0,0,1" Padding="2,11">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Content="Use"
+                                                    Command="{Binding DataContext.ActivateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" />
+                                            <Button Content="Delete" Style="{StaticResource QuietButton}" Margin="7,0,0,0"
+                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource Prose}" Text="{Binding Name}" />
+                                            <TextBlock Style="{StaticResource Numeric}" Margin="0,3,0,0"
+                                                       Foreground="{Binding TightFit, Converter={StaticResource FitBrush}}"
+                                                       Text="{Binding Description}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Style="{StaticResource Heading}" Margin="0,34,0,0" Text="Pull a model" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,5,0,14"
+                               Text="Ollama has no API for browsing its library, so this is a short suggested list plus a box for any name you already know." />
+
+                    <ItemsControl ItemsSource="{Binding Recommended}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,0,0,11">
+                                    <Button DockPanel.Dock="Right" Content="Pull"
+                                            Command="{Binding DataContext.PullCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding Name}" />
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,14,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Prose}" Text="{Binding Name}" />
+                                            <TextBlock Style="{StaticResource Numeric}" Margin="10,2,0,0"
+                                                       Text="{Binding SizeGb, StringFormat={}{0:0.0} GB}" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Caption}" Margin="0,2,0,0" Text="{Binding Summary}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <DockPanel Margin="0,10,0,0">
+                        <Button DockPanel.Dock="Right" Content="Pull" Margin="9,0,0,0"
+                                Command="{Binding PullCommand}" />
+                        <TextBox Text="{Binding PullName, UpdateSourceTrigger=PropertyChanged}" />
+                    </DockPanel>
+
+                    <Border Style="{StaticResource Panel}" Margin="0,16,0,0"
+                            Visibility="{Binding IsPulling, Converter={StaticResource Show}}">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Cancel" Style="{StaticResource QuietButton}"
+                                        Command="{Binding CancelPullCommand}" />
+                                <TextBlock Style="{StaticResource Numeric}" VerticalAlignment="Center" Text="{Binding PullStatus}" />
+                            </DockPanel>
+                            <ProgressBar Margin="0,12,0,0" Value="{Binding PullFraction, Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0"
+                               Visibility="{Binding IsPulling, Converter={StaticResource ShowWhenFalse}}"
+                               Text="{Binding PullStatus}" />
+
+                    <TextBlock Style="{StaticResource Heading}" Margin="0,38,0,0" Text="Compare" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,5,0,14"
+                               Text="Runs the same translation prompt through each ticked model, one at a time because two 5 GB models will not sit in 6 GB of VRAM together." />
+
+                    <TextBox Text="{Binding CompareSample, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" />
+
+                    <ItemsControl ItemsSource="{Binding Installed}" Margin="0,14,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Name}" Margin="0,0,20,9"
+                                          Checked="OnCompareModelChecked"
+                                          Unchecked="OnCompareModelUnchecked"
+                                          Tag="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Content="Run comparison" Style="{StaticResource PrimaryButton}"
+                            HorizontalAlignment="Left" Margin="0,6,0,0"
+                            Command="{Binding CompareCommand}" />
+
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,10,0,0"
+                               Visibility="{Binding IsComparing, Converter={StaticResource Show}}"
+                               Text="Running. The first call to a model that is not loaded takes the longest." />
+
+                    <ItemsControl ItemsSource="{Binding CompareResults}" Margin="0,16,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource Panel}" Margin="0,0,0,10">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource Numeric}"
+                                                       Text="{Binding Elapsed, StringFormat={}{0:s\\.ff}s}" />
+                                            <TextBlock Style="{StaticResource Subheading}" Foreground="{StaticResource TextPrimary}"
+                                                       Text="{Binding Model}" />
+                                        </DockPanel>
+                                        <TextBlock Style="{StaticResource Prose}" Margin="0,9,0,0"
+                                                   Visibility="{Binding Output, Converter={StaticResource ShowWhenSet}}"
+                                                   Text="{Binding Output}" />
+                                        <TextBlock Style="{StaticResource Prose}" Margin="0,9,0,0"
+                                                   Foreground="{StaticResource Error}"
+                                                   Visibility="{Binding Failure, Converter={StaticResource ShowWhenSet}}"
+                                                   Text="{Binding Failure}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ===================== Settings ===================== -->
+                <StackPanel Visibility="{Binding OnSettings, Converter={StaticResource Show}}">
+
+                    <TextBlock Style="{StaticResource Heading}" Text="Settings" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,5,0,22" Text="{Binding SettingsPath, StringFormat=Saved to {0}}" />
+
+                    <TextBlock Style="{StaticResource Subheading}" Text="Active model" />
+                    <ComboBox Margin="0,8,0,0" Width="300" HorizontalAlignment="Left"
+                              ItemsSource="{Binding ModelChoices}"
+                              SelectedItem="{Binding Model, Mode=TwoWay}" />
+
+                    <TextBlock Style="{StaticResource Subheading}" Margin="0,26,0,0" Text="Tone" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,0" Text="Used by the change-tone hotkey." />
+                    <ComboBox Margin="0,8,0,0" Width="300" HorizontalAlignment="Left"
+                              ItemsSource="{Binding Tones}"
+                              SelectedItem="{Binding Tone, Mode=TwoWay}" />
+
+                    <TextBlock Style="{StaticResource Subheading}" Margin="0,30,0,0" Text="Hotkeys" />
+                    <TextBlock Style="{StaticResource Caption}" Margin="0,4,0,12"
+                               Text="Click one, then press the chord you want. A global hotkey outranks whatever app is in front, so avoid anything you use inside an editor." />
+
+                    <Grid HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="230" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Prose}" VerticalAlignment="Center" Text="Fix grammar" />
+                        <Button Grid.Row="0" Grid.Column="1" Width="190" Margin="0,0,0,7" Tag="Grammar"
+                                Click="OnCaptureHotkey" Content="{Binding HotkeyGrammar}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Prose}" VerticalAlignment="Center" Text="Translate to English" />
+                        <Button Grid.Row="1" Grid.Column="1" Width="190" Margin="0,0,0,7" Tag="Translate"
+                                Click="OnCaptureHotkey" Content="{Binding HotkeyTranslate}" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Prose}" VerticalAlignment="Center" Text="Rewrite" />
+                        <Button Grid.Row="2" Grid.Column="1" Width="190" Margin="0,0,0,7" Tag="Rewrite"
+                                Click="OnCaptureHotkey" Content="{Binding HotkeyRewrite}" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource Prose}" VerticalAlignment="Center" Text="Change tone" />
+                        <Button Grid.Row="3" Grid.Column="1" Width="190" Tag="Tone"
+                                Click="OnCaptureHotkey" Content="{Binding HotkeyTone}" />
+                    </Grid>
+
+                    <Border Style="{StaticResource Divider}" Margin="0,30,0,20" />
+
+                    <TextBlock Style="{StaticResource Subheading}" Text="Privacy" />
+                    <TextBlock Style="{StaticResource Prose}" Margin="0,8,0,0" Foreground="{StaticResource TextSecondary}"
+                               Text="texAi contacts 127.0.0.1:11434 and nothing else. Selected text goes to your own Ollama, is shown in Activity for this session, and is never written to disk or logged. The only file it writes is the settings above." />
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

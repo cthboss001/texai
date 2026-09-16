@@ -34,10 +34,14 @@ internal sealed class TrayIcon : IDisposable
 
         _statusMenuItem = new ToolStripMenuItem("Checking...") { Enabled = false };
 
+        var openMenuItem = new ToolStripMenuItem("Open dashboard") { Font = new Font(SystemFonts.MenuFont!, FontStyle.Bold) };
+        openMenuItem.Click += (_, _) => Ui.DashboardWindow.ShowOrActivate();
+
         var exitMenuItem = new ToolStripMenuItem("Exit texAi");
         exitMenuItem.Click += (_, _) => ExitApplication();
 
         var menu = new ContextMenuStrip();
+        menu.Items.Add(openMenuItem);
         menu.Items.Add(_statusMenuItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitMenuItem);
@@ -49,6 +53,8 @@ internal sealed class TrayIcon : IDisposable
             ContextMenuStrip = menu,
             Visible = true,
         };
+
+        _notifyIcon.DoubleClick += (_, _) => Ui.DashboardWindow.ShowOrActivate();
 
         _pollTimer = new DispatcherTimer { Interval = PollInterval };
         _pollTimer.Tick += async (_, _) => await RefreshStatusAsync();

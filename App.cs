@@ -22,10 +22,13 @@ internal sealed class App : Application
         // Not the constructor: the pack:// URI scheme is registered as part of
         // Application's own initialisation, so resolving a component URI any
         // earlier is a race with it.
-        Resources.MergedDictionaries.Add(new ResourceDictionary
+        foreach (string theme in new[] { "Palette", "Controls" })
         {
-            Source = new Uri("pack://application:,,,/texAi;component/Themes/Palette.xaml", UriKind.Absolute),
-        });
+            Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri($"pack://application:,,,/texAi;component/Themes/{theme}.xaml", UriKind.Absolute),
+            });
+        }
 
         // Must come after the theme is merged: the indicator's XAML resolves its
         // colours with StaticResource at load time.
@@ -43,6 +46,13 @@ internal sealed class App : Application
         // Pay the model's load-and-warm cost now, in the background, rather than
         // charging it to whichever hotkey the user presses first.
         _ = OllamaClient.WarmAsync();
+
+        if (!SettingsStore.Current.OnboardingDone)
+        {
+            SettingsStore.Current.OnboardingDone = true;
+            SettingsStore.Save();
+            DashboardWindow.ShowOrActivate();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
