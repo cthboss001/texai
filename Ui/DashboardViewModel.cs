@@ -441,7 +441,17 @@ internal sealed class DashboardViewModel : INotifyPropertyChanged
     // dashboard window, which is hidden rather than closed and lives as long as
     // the process does.
     private void OnErrorLogged(ErrorEntry entry) =>
-        Application.Current?.Dispatcher.Invoke(() => Errors.Insert(0, entry));
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            Errors.Insert(0, entry);
+
+            // Otherwise the rail keeps saying "connected" next to an error that
+            // says Ollama is not running, until the next 30s poll catches up.
+            if (entry.Kind is FailureKind.OllamaUnreachable or FailureKind.ModelNotInstalled)
+            {
+                _ = RefreshAsync();
+            }
+        });
 
     // ---- INotifyPropertyChanged -------------------------------------------
 
