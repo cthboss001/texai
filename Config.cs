@@ -13,15 +13,22 @@ internal static class Config
     public const string OllamaEndpoint = "http://127.0.0.1:11434";
 
     /// <summary>
-    /// Kept as the default after testing it against aya-expanse:8b on Bangla,
-    /// romanised Bangla, grammar and tone. The multilingual model was expected
-    /// to win and did not: on "i has completed this project yesterday" it
-    /// answers "I have completed this project yesterday", which is a present
-    /// perfect against a past time marker; it renders "কালকের মিটিং" as "the
-    /// meeting with the clock"; and it embellishes rather than preserves on
-    /// tone. It is also roughly twice as slow here and offloads twice as much
-    /// to the CPU. Neither model handles romanised Bangla ("ami valo hoye
-    /// jabo") correctly, so that remains open.
+    /// Kept as the default after testing against aya-expanse:8b and gemma2:9b
+    /// on romanised Bangla, Bangla script, grammar and tone.
+    ///
+    /// aya-expanse was expected to win on Bangla and lost outright: it answers
+    /// "I have completed this project yesterday" (present perfect against a past
+    /// time marker), renders "কালকের মিটিং" as "the meeting with the clock", and
+    /// embellishes instead of preserving on tone.
+    ///
+    /// gemma2:9b is the interesting one. It is the only model of the three that
+    /// gets "ami valo hoye jabo" right, answering "I will be well", and it
+    /// matches qwen everywhere else. It costs roughly three times the latency
+    /// (2 to 3s against 0.4 to 0.9s) and runs 46% on the CPU rather than 18%,
+    /// because at 7.1GB loaded it does not come close to fitting a 6GB card.
+    /// For a tool whose whole point is that it feels immediate, that is the
+    /// wrong default, but it is a good deliberate choice, so it is in the
+    /// recommended list with the trade spelled out.
     /// </summary>
     public const string DefaultModel = "qwen2.5:7b";
 
@@ -74,7 +81,7 @@ internal static class Config
     [
         new("qwen2.5:7b", "The default. Fastest of these and the most faithful on grammar.", 4.7),
         new("aya-expanse:8b", "Cohere's multilingual model. Reads Bangla script, but weaker on English grammar.", 5.1),
-        new("gemma2:9b", "Strong on English rewriting. Will not fit a 6GB card without offloading.", 5.4),
+        new("gemma2:9b", "Best on romanised Bangla, but 3x slower on a 6GB card.", 5.4),
         new("llama3.1:8b", "General purpose fallback.", 4.9),
         new("qwen2.5:3b", "Fast and small, for machines without a usable GPU.", 1.9),
     ];

@@ -90,6 +90,32 @@ modifiers are released, then forces key-ups if you are still holding after
 One transformation runs at a time; a hotkey pressed while one is in flight
 is ignored. Every failure path leaves your selected text exactly as it was.
 
+## Which model
+
+The default is `qwen2.5:7b`. Three were tested on an RTX 2060 6GB against
+romanised Bangla, Bangla script, grammar and tone.
+
+| Model            | On disk | Loaded | CPU share | Typical rewrite |
+|------------------|---------|--------|-----------|-----------------|
+| qwen2.5:7b       | 4.4 GB  | 5.1 GB | 18%       | 0.4 to 0.9s     |
+| aya-expanse:8b   | 4.7 GB  | 6.6 GB | 36%       | 0.8 to 1.9s     |
+| gemma2:9b        | 5.1 GB  | 7.1 GB | 46%       | 1.8 to 3.2s     |
+
+`aya-expanse` was the expected winner on Bangla and was not. It answers
+"I have completed this project yesterday", which is a present perfect
+against a past time marker, and it reads "কালকের মিটিং" as "the meeting
+with the clock".
+
+`gemma2:9b` is the only one that translates "ami valo hoye jabo" correctly
+("I will be well"), and it matches qwen everywhere else. It costs about
+three times the latency for it. If you write a lot of romanised Bangla,
+switch to it in the dashboard; otherwise the default is faster and just as
+accurate.
+
+None of the three handles romanised Bangla reliably. "tumi kothay acho?
+ami ekhon bashay" means "where are you? I'm at home now", and no model
+tested gets the second half.
+
 ## When it does not work
 
 Failures used to be one red dot. Now the dashboard's Errors section says
