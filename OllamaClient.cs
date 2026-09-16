@@ -19,6 +19,45 @@ internal static class OllamaClient
         Timeout = TimeSpan.FromSeconds(60),
     };
 
+    /// <summary>
+    /// True if Ollama is reachable and the configured model is pulled.
+    /// Used for the tray icon's status, not the transform pipeline.
+    /// </summary>
+    public static async Task<bool> CheckHealthAsync()
+    {
+        try
+        {
+            using var response = await Http.GetAsync($"{Config.OllamaEndpoint}/api/tags");
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            string body = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(body);
+
+            if (!doc.RootElement.TryGetProperty("models", out JsonElement models))
+            {
+                return false;
+            }
+
+            foreach (JsonElement model in models.EnumerateArray())
+            {
+                if (model.TryGetProperty("name", out JsonElement nameProp) &&
+                    string.Equals(nameProp.GetString(), Config.ModelName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static async Task<string?> TransformAsync(HotkeyAction action, string input)
     {
         string instruction = action switch

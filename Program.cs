@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows.Forms;
 
 namespace texAi;
@@ -13,6 +14,14 @@ internal static class Program
             return;
         }
 
-        Application.Run(new HotkeyForm());
+        // HotkeyWindow is a NativeWindow, not a Control, so it won't auto-install
+        // this the way a Form would. Needed so awaits in TextTransformer resume
+        // on this thread, since clipboard and SendInput calls must run on the STA
+        // thread that owns the hotkey window.
+        SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
+
+        _ = new HotkeyWindow();
+        using var trayIcon = new TrayIcon();
+        Application.Run();
     }
 }

@@ -17,10 +17,14 @@ internal static class TextTransformer
 
     public static async Task RunAsync(HotkeyAction action)
     {
+        var indicator = new ProgressIndicator();
+        indicator.ShowNear(CaretLocator.GetAnchorPoint());
+
         IDataObject? original = TryGetClipboardData();
 
         if (!TryClearClipboard())
         {
+            indicator.Fail();
             return;
         }
 
@@ -29,6 +33,7 @@ internal static class TextTransformer
         string? selected = await WaitForClipboardTextAsync(CaptureTimeout);
         if (string.IsNullOrWhiteSpace(selected))
         {
+            indicator.Fail();
             TryRestoreClipboard(original);
             return;
         }
@@ -36,17 +41,20 @@ internal static class TextTransformer
         string? result = await OllamaClient.TransformAsync(action, selected);
         if (string.IsNullOrWhiteSpace(result))
         {
+            indicator.Fail();
             TryRestoreClipboard(original);
             return;
         }
 
         if (!TrySetClipboardText(result))
         {
+            indicator.Fail();
             TryRestoreClipboard(original);
             return;
         }
 
         InputSimulator.SendCtrlV();
+        indicator.Complete();
         await Task.Delay(250);
         TryRestoreClipboard(original);
     }

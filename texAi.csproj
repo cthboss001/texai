@@ -9,6 +9,7 @@
     <RootNamespace>texAi</RootNamespace>
     <AssemblyName>texAi</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
 </Project>

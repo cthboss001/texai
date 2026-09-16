@@ -3,12 +3,13 @@ using System.Windows.Forms;
 namespace texAi;
 
 /// <summary>
-/// A Form is the easiest way to get a message loop + WindowsFormsSynchronizationContext
-/// (required so clipboard/SendInput calls after an await land back on the STA thread),
-/// but SetVisibleCore is overridden so this window is never actually shown, has no
-/// taskbar entry, and never steals focus.
+/// A plain NativeWindow, not a Form: its handle is created unconditionally in the
+/// constructor via CreateHandle, so it exists purely to receive WM_HOTKEY messages
+/// and is never shown, never has a taskbar entry, and never steals focus. (An earlier
+/// version used a Form with SetVisibleCore forced to false to hide it, but that also
+/// suppressed handle creation entirely, so RegisterHotKey silently never ran.)
 /// </summary>
-internal sealed class HotkeyForm : Form
+internal sealed class HotkeyWindow : NativeWindow
 {
     private const int WM_HOTKEY = 0x0312;
 
@@ -19,27 +20,15 @@ internal sealed class HotkeyForm : Form
 
     private bool _busy;
 
-    protected override void SetVisibleCore(bool value) => base.SetVisibleCore(false);
-
-    protected override void OnHandleCreated(EventArgs e)
+    public HotkeyWindow()
     {
-        base.OnHandleCreated(e);
+        CreateHandle(new CreateParams());
 
         const uint modifiers = NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT | NativeMethods.MOD_NOREPEAT;
         NativeMethods.RegisterHotKey(Handle, HotkeyIdGrammar, modifiers, (uint)Keys.G);
         NativeMethods.RegisterHotKey(Handle, HotkeyIdTranslate, modifiers, (uint)Keys.T);
         NativeMethods.RegisterHotKey(Handle, HotkeyIdRewrite, modifiers, (uint)Keys.R);
         NativeMethods.RegisterHotKey(Handle, HotkeyIdTone, modifiers, (uint)Keys.F);
-    }
-
-    protected override void OnHandleDestroyed(EventArgs e)
-    {
-        NativeMethods.UnregisterHotKey(Handle, HotkeyIdGrammar);
-        NativeMethods.UnregisterHotKey(Handle, HotkeyIdTranslate);
-        NativeMethods.UnregisterHotKey(Handle, HotkeyIdRewrite);
-        NativeMethods.UnregisterHotKey(Handle, HotkeyIdTone);
-
-        base.OnHandleDestroyed(e);
     }
 
     protected override void WndProc(ref Message m)
