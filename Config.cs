@@ -12,6 +12,17 @@ internal static class Config
 {
     public const string OllamaEndpoint = "http://127.0.0.1:11434";
 
+    /// <summary>
+    /// Kept as the default after testing it against aya-expanse:8b on Bangla,
+    /// romanised Bangla, grammar and tone. The multilingual model was expected
+    /// to win and did not: on "i has completed this project yesterday" it
+    /// answers "I have completed this project yesterday", which is a present
+    /// perfect against a past time marker; it renders "কালকের মিটিং" as "the
+    /// meeting with the clock"; and it embellishes rather than preserves on
+    /// tone. It is also roughly twice as slow here and offloads twice as much
+    /// to the CPU. Neither model handles romanised Bangla ("ami valo hoye
+    /// jabo") correctly, so that remains open.
+    /// </summary>
     public const string DefaultModel = "qwen2.5:7b";
 
     public const string DefaultTone = "Professional";
@@ -61,9 +72,9 @@ internal static class Config
     /// </summary>
     public static readonly RecommendedModel[] RecommendedModels =
     [
-        new("qwen2.5:7b", "Balanced. The long-standing default here.", 4.7),
-        new("aya-expanse:8b", "Cohere's multilingual model; the best bet for Bangla.", 5.1),
-        new("gemma2:9b", "Strongest English rewriting, tightest fit in 6GB.", 5.4),
+        new("qwen2.5:7b", "The default. Fastest of these and the most faithful on grammar.", 4.7),
+        new("aya-expanse:8b", "Cohere's multilingual model. Reads Bangla script, but weaker on English grammar.", 5.1),
+        new("gemma2:9b", "Strong on English rewriting. Will not fit a 6GB card without offloading.", 5.4),
         new("llama3.1:8b", "General purpose fallback.", 4.9),
         new("qwen2.5:3b", "Fast and small, for machines without a usable GPU.", 1.9),
     ];

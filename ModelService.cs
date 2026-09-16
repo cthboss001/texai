@@ -12,11 +12,14 @@ internal sealed record InstalledModel(string Name, long SizeBytes, string Parame
     public double SizeGb => SizeBytes / 1024d / 1024d / 1024d;
 
     /// <summary>
-    /// Flagged against a 6GB card. The weights are not the whole story: the KV
-    /// cache is allocated on top of them, so anything past about 5.5GB starts
-    /// spilling layers to the CPU and turns a two-second rewrite into thirty.
+    /// Flagged against a 6GB card, using measurements rather than an estimate.
+    /// On an RTX 2060 6GB at a 4096 context, qwen2.5:7b is 4.4GB on disk but
+    /// loads at 5.1GB and runs 18% on the CPU; aya-expanse:8b is 4.7GB on disk,
+    /// loads at 6.6GB and runs 36% on the CPU. The KV cache is what does it, and
+    /// it is not counted in the download size. Offloading starts around 4.5GB,
+    /// so 5.0 is where it becomes bad enough to warn about.
     /// </summary>
-    public bool TightFit => SizeGb > 5.5;
+    public bool TightFit => SizeGb > 5.0;
 
     /// <summary>A property, not a method: WPF bindings cannot call methods.</summary>
     public string Description => $"{SizeGb:0.0} GB, {ParameterSize}, {Quantization}";

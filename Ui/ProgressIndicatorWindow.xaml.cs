@@ -49,7 +49,7 @@ internal partial class ProgressIndicatorWindow : Window
     /// Creates the hwnd up front so the extended styles are in place and the
     /// first ShowBeside has nothing left to do but position and show.
     /// </summary>
-    public void Prepare() => _handle = new WindowInteropHelper(this).EnsureHandle();
+    public void Prepare() => new WindowInteropHelper(this).EnsureHandle();
 
     protected override void OnSourceInitialized(EventArgs e)
     {

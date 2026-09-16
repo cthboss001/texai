@@ -437,10 +437,11 @@ internal sealed class DashboardViewModel : INotifyPropertyChanged
         }
     }
 
+    // Never unsubscribed, deliberately: one view model is created for the one
+    // dashboard window, which is hidden rather than closed and lives as long as
+    // the process does.
     private void OnErrorLogged(ErrorEntry entry) =>
         Application.Current?.Dispatcher.Invoke(() => Errors.Insert(0, entry));
-
-    public void Detach() => ErrorLog.EntryAdded -= OnErrorLogged;
 
     // ---- INotifyPropertyChanged -------------------------------------------
 
