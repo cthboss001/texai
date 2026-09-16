@@ -1,0 +1,76 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!--
+        Direction: ink on warm graphite, with one amber accent.
+
+        texAi's entire argument is that your text never leaves this machine, so
+        the surface is deliberately warm and printerly rather than the cool
+        blue-grey that every cloud dashboard uses. Greys carry a yellow bias
+        (hue ~40) instead of a blue one; the accent is amber, which reads as a
+        desk lamp rather than a notification.
+
+        Only one theme, and it is dark. The app's other visual surface is a
+        20px overlay drawn on top of whatever the user is working in, where a
+        dark disc is legible against both a white document and a dark editor.
+        Two themes would have doubled the work for a window most users open
+        twice.
+
+        Green and red are reserved for state (a transform succeeded, a transform
+        failed) and are used nowhere else, so a coloured dot always means status.
+        There is no separate warning colour: caution reuses the amber accent.
+    -->
+
+    <Color x:Key="SurfaceBaseColor">#FF16140F</Color>
+    <Color x:Key="SurfaceRaisedColor">#FF1F1C15</Color>
+    <Color x:Key="SurfaceSunkenColor">#FF100E0A</Color>
+    <Color x:Key="SurfaceHoverColor">#FF2A2619</Color>
+    <Color x:Key="HairlineColor">#FF332F26</Color>
+    <Color x:Key="HairlineStrongColor">#FF4A4436</Color>
+
+    <Color x:Key="TextPrimaryColor">#FFEFE8DA</Color>
+    <Color x:Key="TextSecondaryColor">#FFA69C88</Color>
+    <Color x:Key="TextMutedColor">#FF6F6758</Color>
+
+    <Color x:Key="AccentColor">#FFD99A2B</Color>
+    <Color x:Key="AccentHoverColor">#FFF0B043</Color>
+    <Color x:Key="AccentSunkColor">#FFB37F1F</Color>
+
+    <Color x:Key="SuccessColor">#FF5FA463</Color>
+    <Color x:Key="ErrorColor">#FFC75B41</Color>
+
+    <SolidColorBrush x:Key="SurfaceBase" Color="{StaticResource SurfaceBaseColor}" />
+    <SolidColorBrush x:Key="SurfaceRaised" Color="{StaticResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="SurfaceSunken" Color="{StaticResource SurfaceSunkenColor}" />
+    <SolidColorBrush x:Key="SurfaceHover" Color="{StaticResource SurfaceHoverColor}" />
+    <SolidColorBrush x:Key="Hairline" Color="{StaticResource HairlineColor}" />
+    <SolidColorBrush x:Key="HairlineStrong" Color="{StaticResource HairlineStrongColor}" />
+
+    <SolidColorBrush x:Key="TextPrimary" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondary" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextMuted" Color="{StaticResource TextMutedColor}" />
+
+    <SolidColorBrush x:Key="Accent" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHover" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentSunk" Color="{StaticResource AccentSunkColor}" />
+
+    <SolidColorBrush x:Key="Success" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="Error" Color="{StaticResource ErrorColor}" />
+
+    <!--
+        Sitka (Matthew Carter) and Consolas both ship with Windows, so neither
+        costs a font file in a single-file exe. Sitka has an actual voice, which
+        Segoe UI does not; Consolas is monospaced, so every timestamp, byte count
+        and duration lines up without asking for tabular figures.
+    -->
+    <FontFamily x:Key="ProseFont">Sitka Text</FontFamily>
+    <FontFamily x:Key="NumericFont">Consolas</FontFamily>
+
+    <sys:Double x:Key="SizeDisplay">27</sys:Double>
+    <sys:Double x:Key="SizeHeading">18</sys:Double>
+    <sys:Double x:Key="SizeSubheading">14.5</sys:Double>
+    <sys:Double x:Key="SizeBody">13</sys:Double>
+    <sys:Double x:Key="SizeCaption">11.5</sys:Double>
+
+</ResourceDictionary>

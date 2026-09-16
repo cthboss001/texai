@@ -1,5 +1,5 @@
 using System.Threading;
-using System.Windows.Forms;
+using System.Windows;
 
 namespace texAi;
 
@@ -14,19 +14,10 @@ internal static class Program
             return;
         }
 
-        // HotkeyWindow is a NativeWindow, not a Control, so it won't auto-install
-        // this the way a Form would. Needed so awaits in TextTransformer resume
-        // on this thread, since clipboard and SendInput calls must run on the STA
-        // thread that owns the hotkey window.
-        SynchronizationContext.SetSynchronizationContext(new WindowsFormsSynchronizationContext());
-
-        _ = new HotkeyWindow();
-        using var trayIcon = new TrayIcon();
-
-        // Pay the model's load-and-warm cost now, in the background, rather than
-        // charging it to whichever hotkey the user presses first.
-        _ = OllamaClient.WarmAsync();
-
-        Application.Run();
+        // OnExplicitShutdown because texAi has no main window: with the default
+        // OnLastWindowClose, hiding the indicator after a rewrite would quit the
+        // whole app.
+        var app = new App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        app.Run();
     }
 }

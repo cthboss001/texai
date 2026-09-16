@@ -4,6 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>texAi</RootNamespace>
@@ -11,5 +12,18 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
+
+  <!--
+    WinForms is still referenced, but only for NotifyIcon (WPF has no tray API)
+    and Screen (for multi-monitor work areas). Its implicit usings have to go:
+    with both frameworks enabled, System.Windows.Forms and System.Windows each
+    define Application, Clipboard, Point, Size, Color, Control and MessageBox,
+    so every file would need a disambiguating alias. The two files that want
+    WinForms now say so explicitly.
+  -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
 
 </Project>

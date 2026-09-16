@@ -1,12 +1,13 @@
 namespace texAi;
 
+/// <param name="Action">Null for problems that are not tied to one hotkey, such as a failed registration.</param>
 internal sealed record ErrorEntry(
     DateTime Timestamp,
-    HotkeyAction Action,
+    HotkeyAction? Action,
     FailureKind Kind,
     string Description,
     string? Detail,
-    string Model);
+    string? Model);
 
 /// <summary>
 /// A bounded in-memory record of what went wrong, so "it just showed a red dot"
@@ -31,14 +32,15 @@ internal static class ErrorLog
             return;
         }
 
-        var entry = new ErrorEntry(
-            DateTime.Now,
-            action,
-            outcome.Kind,
-            outcome.Describe(),
-            outcome.Detail,
-            model);
+        Add(new ErrorEntry(DateTime.Now, action, outcome.Kind, outcome.Describe(), outcome.Detail, model));
+    }
 
+    /// <summary>For app-level problems with no transform behind them.</summary>
+    public static void Record(FailureKind kind, string description, string? detail = null) =>
+        Add(new ErrorEntry(DateTime.Now, null, kind, description, detail, null));
+
+    private static void Add(ErrorEntry entry)
+    {
         lock (Gate)
         {
             if (Entries.Count == Capacity)

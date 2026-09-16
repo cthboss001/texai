@@ -1,15 +1,18 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Windows.Threading;
 
 namespace texAi;
 
 /// <summary>
-/// The only persistent, always-visible part of texAi: a system tray dot
-/// showing whether Ollama and the configured model are currently reachable
-/// (green/red), polled periodically since Ollama can be started or stopped
-/// independently of texAi. Also the one place to exit cleanly, so stopping
-/// it no longer requires Task Manager.
+/// The only persistent, always-visible part of texAi: a system tray dot showing
+/// whether Ollama and the active model are currently reachable, polled because
+/// Ollama can be started or stopped independently of texAi. Also the one place
+/// to exit cleanly.
+///
+/// Still WinForms: WPF has no tray API of its own, and NotifyIcon plus a
+/// GDI-drawn icon is a smaller dependency than pulling in a package for it.
 /// </summary>
 internal sealed class TrayIcon : IDisposable
 {
@@ -19,16 +22,18 @@ internal sealed class TrayIcon : IDisposable
     private readonly Icon _iconOk;
     private readonly Icon _iconError;
     private readonly Icon _iconChecking;
-    private readonly System.Windows.Forms.Timer _pollTimer;
+    private readonly DispatcherTimer _pollTimer;
     private readonly ToolStripMenuItem _statusMenuItem;
 
     public TrayIcon()
     {
-        _iconOk = CreateDotIcon(Color.FromArgb(52, 168, 83));
-        _iconError = CreateDotIcon(Color.FromArgb(196, 44, 44));
-        _iconChecking = CreateDotIcon(Color.FromArgb(150, 150, 150));
+        // Matches Themes/Palette.xaml: Success #5FA463, Error #C75B41, muted text.
+        _iconOk = CreateDotIcon(Color.FromArgb(0x5F, 0xA4, 0x63));
+        _iconError = CreateDotIcon(Color.FromArgb(0xC7, 0x5B, 0x41));
+        _iconChecking = CreateDotIcon(Color.FromArgb(0x6F, 0x67, 0x58));
 
         _statusMenuItem = new ToolStripMenuItem("Checking...") { Enabled = false };
+
         var exitMenuItem = new ToolStripMenuItem("Exit texAi");
         exitMenuItem.Click += (_, _) => ExitApplication();
 
@@ -45,7 +50,7 @@ internal sealed class TrayIcon : IDisposable
             Visible = true,
         };
 
-        _pollTimer = new System.Windows.Forms.Timer { Interval = (int)PollInterval.TotalMilliseconds };
+        _pollTimer = new DispatcherTimer { Interval = PollInterval };
         _pollTimer.Tick += async (_, _) => await RefreshStatusAsync();
         _pollTimer.Start();
 
@@ -68,7 +73,7 @@ internal sealed class TrayIcon : IDisposable
     private void ExitApplication()
     {
         _notifyIcon.Visible = false;
-        Application.Exit();
+        System.Windows.Application.Current.Shutdown();
     }
 
     private static Icon CreateDotIcon(Color color)
@@ -93,7 +98,6 @@ internal sealed class TrayIcon : IDisposable
     public void Dispose()
     {
         _pollTimer.Stop();
-        _pollTimer.Dispose();
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _iconOk.Dispose();

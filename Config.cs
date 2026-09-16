@@ -1,3 +1,5 @@
+using System.Windows.Input;
+
 namespace texAi;
 
 /// <summary>
@@ -21,6 +23,21 @@ internal static class Config
     /// trade worth making.
     /// </summary>
     public const string KeepAlive = "30m";
+
+    /// <summary>
+    /// Ctrl+Alt, not the original Ctrl+Shift. A global hotkey outranks the
+    /// focused app, so Ctrl+Shift+T took "reopen closed tab" away from every
+    /// browser, Ctrl+Shift+R took hard reload, and Ctrl+Shift+F took
+    /// find-in-files in VS Code, system-wide. Ctrl+Alt collides with far less.
+    /// </summary>
+    public static IReadOnlyDictionary<HotkeyAction, HotkeyBinding> DefaultHotkeys { get; } =
+        new Dictionary<HotkeyAction, HotkeyBinding>
+        {
+            [HotkeyAction.Grammar] = new(ModifierKeys.Control | ModifierKeys.Alt, Key.G),
+            [HotkeyAction.Translate] = new(ModifierKeys.Control | ModifierKeys.Alt, Key.T),
+            [HotkeyAction.Rewrite] = new(ModifierKeys.Control | ModifierKeys.Alt, Key.R),
+            [HotkeyAction.Tone] = new(ModifierKeys.Control | ModifierKeys.Alt, Key.F),
+        };
 
     public const string GrammarPrompt =
         "Fix grammar, spelling, punctuation, and unnatural phrasing. " +
