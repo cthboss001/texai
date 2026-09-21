@@ -10,7 +10,16 @@
     <RootNamespace>texAi</RootNamespace>
     <AssemblyName>texAi</AssemblyName>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+
+    <!-- Kept in sync with installer\texai.iss MyAppVersion by hand: UpdateService
+         reads this at runtime to decide whether a GitHub release is newer. -->
+    <Version>2.0.1</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\icon.ico" />
+  </ItemGroup>
 
   <!--
     InvariantGlobalization is deliberately absent. It was set while this was a

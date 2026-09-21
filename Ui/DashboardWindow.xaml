@@ -4,6 +4,7 @@
         xmlns:ui="clr-namespace:texAi.Ui"
         x:ClassModifier="internal"
         Title="texAi"
+        Icon="pack://application:,,,/Assets/icon.ico"
         Width="980" Height="700"
         MinWidth="820" MinHeight="540"
         Background="{StaticResource SurfaceBase}"
