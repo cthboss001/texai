@@ -59,12 +59,19 @@
     <SolidColorBrush x:Key="Error" Color="{StaticResource ErrorColor}" />
 
     <!--
-        Sitka (Matthew Carter) and Consolas both ship with Windows, so neither
-        costs a font file in a single-file exe. Sitka has an actual voice, which
-        Segoe UI does not; Consolas is monospaced, so every timestamp, byte count
-        and duration lines up without asking for tabular figures.
+        Prose was Sitka Text. Moved to Segoe UI Variable at Tazim's request for
+        something closer to what Anthropic's own apps (including this one's
+        namesake, Claude Code) render with. Anthropic's actual product typeface
+        is not freely redistributable, so this is the nearest honest match
+        rather than the real thing: Segoe UI Variable is Windows' own current
+        default (Windows 11 shell, WinUI 3, Windows Terminal), which keeps the
+        same "no bundled font file in a single-file exe" property Sitka had,
+        and reads as the deliberately-current choice rather than the
+        Segoe-UI-as-safe-default one Palette.xaml used to argue against.
+        Consolas is unchanged and monospaced, so every timestamp, byte count
+        and duration still lines up without asking for tabular figures.
     -->
-    <FontFamily x:Key="ProseFont">Sitka Text</FontFamily>
+    <FontFamily x:Key="ProseFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="NumericFont">Consolas</FontFamily>
 
     <sys:Double x:Key="SizeDisplay">27</sys:Double>
