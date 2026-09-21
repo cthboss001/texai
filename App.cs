@@ -19,6 +19,16 @@ internal sealed class App : Application
     {
         base.OnStartup(e);
 
+        // Checked before anything else exists to interrupt: if a background
+        // check already staged an installer, this is the "next restart" the
+        // silent auto-update promises. The relaunch comes from the installer's
+        // own postinstall step, so this process's job is done.
+        if (UpdateService.TryApplyPendingUpdate())
+        {
+            Shutdown();
+            return;
+        }
+
         // Not the constructor: the pack:// URI scheme is registered as part of
         // Application's own initialisation, so resolving a component URI any
         // earlier is a race with it.
@@ -46,6 +56,8 @@ internal sealed class App : Application
         // Pay the model's load-and-warm cost now, in the background, rather than
         // charging it to whichever hotkey the user presses first.
         _ = OllamaClient.WarmAsync();
+
+        UpdateService.Start();
 
         if (!SettingsStore.Current.OnboardingDone)
         {

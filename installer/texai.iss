@@ -43,7 +43,11 @@ Name: "{autodesktop}\texAi"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopic
 Name: "{userstartup}\texAi"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch texAi now"; Flags: nowait postinstall skipifsilent
+; No skipifsilent: UpdateService runs this installer with /VERYSILENT for the
+; background auto-update, and relies on this entry to bring texAi back up
+; afterwards. A silent install with nothing left running would look like the
+; update broke the app.
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch texAi now"; Flags: nowait postinstall
 
 ; Deliberately not listed under [UninstallDelete]: %AppData%\texAi\settings.json
 ; is the user's own hotkeys and model choice, and an uninstall is often a
