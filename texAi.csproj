@@ -12,9 +12,11 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
 
-    <!-- Kept in sync with installer\texai.iss MyAppVersion by hand: UpdateService
-         reads this at runtime to decide whether a GitHub release is newer. -->
-    <Version>2.0.1</Version>
+    <!-- Must match installer\texai.iss MyAppVersion and the GitHub release tag.
+         UpdateService compares this against the latest tag, so a binary that
+         ships under a higher tag than its own version re-downloads that release
+         on every check, forever. v2.0.2 shipped as 2.0.1 and did exactly that. -->
+    <Version>2.0.3</Version>
   </PropertyGroup>
 
   <ItemGroup>

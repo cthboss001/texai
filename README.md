@@ -59,14 +59,21 @@ is not pulled, the dashboard says so and links to the download.
 dotnet build -c Release
 ```
 
-To produce the single-file exe the installer wraps:
+To produce the folder the installer wraps:
 
 ```powershell
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish-single
+dotnet publish -c Release -r win-x64 --self-contained true -o publish
 ```
 
 It is around 160 MB because it carries the whole .NET desktop runtime.
 The installer's LZMA2 compresses that to roughly 50 MB.
+
+Deliberately not `-p:PublishSingleFile=true`. A single-file build unpacks its
+native WPF libraries into `%TEMP%\.net` on launch, and when that copy is
+missing or half-written the first window WPF creates throws
+`DllNotFoundException` from inside a window procedure, which takes the process
+down with nothing on screen. Since an installer is copying files anyway, the
+one-file trick bought nothing and cost a startup failure mode.
 
 ## How it works
 

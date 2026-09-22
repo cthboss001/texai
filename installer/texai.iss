@@ -1,10 +1,10 @@
 ; Inno Setup script for texAi. Builds a normal Windows installer around the
-; single-file self-contained publish output (../publish-single/texAi.exe).
-; Installs per-user (no admin/UAC needed) since texAi is a background tool,
-; not a system component.
+; self-contained publish folder (../publish). Installs per-user (no admin/UAC
+; needed) since texAi is a background tool, not a system component.
 
 #define MyAppName "texAi"
-#define MyAppVersion "2.0.1"
+; Must match <Version> in texAi.csproj and the GitHub release tag.
+#define MyAppVersion "2.0.3"
 #define MyAppPublisher "cthboss001"
 #define MyAppExeName "texAi.exe"
 
@@ -35,7 +35,13 @@ Name: "startupicon"; Description: "Start texAi automatically when Windows starts
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
 
 [Files]
-Source: "..\publish-single\texAi.exe"; DestDir: "{app}"; Flags: ignoreversion
+; The whole self-contained publish folder, not a one-file bundle. A
+; PublishSingleFile exe unpacks its native WPF libraries to %TEMP%\.net on
+; launch and throws DllNotFoundException out of a window procedure if that copy
+; is missing or half-written, which kills the process with no visible error.
+; Shipping the files as files removes the unpacking step, and the user never
+; sees the difference: this folder is %LocalAppData%\texAi either way.
+Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\texAi"; Filename: "{app}\{#MyAppExeName}"
