@@ -45,14 +45,16 @@ Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs cr
 [Icons]
 Name: "{group}\texAi"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\texAi"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{userstartup}\texAi"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
+; --background keeps a login in the tray; any other launch opens the dashboard.
+Name: "{userstartup}\texAi"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--background"; Tasks: startupicon
 
 [Run]
-; No skipifsilent: UpdateService runs this installer with /VERYSILENT for the
-; background auto-update, and relies on this entry to bring texAi back up
-; afterwards. A silent install with nothing left running would look like the
-; update broke the app.
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch texAi now"; Flags: nowait postinstall
+; Two entries because the two cases want different things. UpdateService runs
+; this installer with /VERYSILENT and relies on it to bring texAi back up, and a
+; silent update should land back in the tray, not pop the dashboard. Someone
+; clicking through the wizard gets the dashboard, so they can see it worked.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--background"; Flags: nowait; Check: WizardSilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch texAi now"; Flags: nowait postinstall skipifsilent
 
 ; Deliberately not listed under [UninstallDelete]: %AppData%\texAi\settings.json
 ; is the user's own hotkeys and model choice, and an uninstall is often a

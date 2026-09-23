@@ -92,6 +92,9 @@ nothing had happened.
 loads those DLLs itself before WPF starts (`WpfNativeLibraries.cs`), so if one
 is ever missing again you get a message naming it instead of silence.
 
+Clicking texAi while it is already running now opens the dashboard. Before,
+that second launch exited silently, which looked the same as a crash.
+
 ## How it works
 
 ```text

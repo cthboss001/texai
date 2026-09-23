@@ -41,9 +41,10 @@ Download the installer from the
 It installs for your user only, so Windows will not ask for administrator
 rights. You can tick "start with Windows" during setup.
 
-The first time it runs, the dashboard opens so you can see the state of
-things. After that texAi stays out of the way: a small dot in the system
-tray, green when Ollama is reachable and red when it is not.
+Opening texAi from the Start menu or a desktop icon shows the dashboard, so
+you can see the state of things. When it starts with Windows it stays out of
+the way: a small dot in the system tray, green when Ollama is reachable and
+red when it is not.
 
 ## Step 4: use it
 
@@ -102,7 +103,8 @@ Ctrl+C, which in Firefox and Chrome opens the developer tools.
 
 ## The dashboard
 
-Double-click the tray icon, or right-click it and choose Open dashboard.
+Double-click the tray icon, right-click it and choose Open dashboard, or
+open texAi from the Start menu again.
 
 **Activity** shows what you rewrote this session, newest first, with the
 latest rewrite and latest grammar fix pulled out at the top. It is cleared

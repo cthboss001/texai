@@ -59,12 +59,25 @@ internal sealed class App : Application
 
         UpdateService.Start();
 
+        // The Startup shortcut and the silent updater pass --background, so a
+        // login or an update stays in the tray. Every other launch is someone
+        // clicking texAi's icon, and a tray dot alone does not look like
+        // anything opened.
+        bool background = e.Args.Contains("--background", StringComparer.OrdinalIgnoreCase);
+
         if (!SettingsStore.Current.OnboardingDone)
         {
             SettingsStore.Current.OnboardingDone = true;
             SettingsStore.Save();
+            background = false;
+        }
+
+        if (!background)
+        {
             DashboardWindow.ShowOrActivate();
         }
+
+        ActivationSignal.Listen(Dispatcher, DashboardWindow.ShowOrActivate);
     }
 
     protected override void OnExit(ExitEventArgs e)

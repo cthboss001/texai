@@ -11,8 +11,11 @@ internal static class Program
         using var singleInstance = new Mutex(initiallyOwned: true, name: "texAi.SingleInstance", out bool createdNew);
         if (!createdNew)
         {
+            ActivationSignal.Send();
             return;
         }
+
+        ActivationSignal.Create();
 
         // Before `new App()`: the Application constructor creates the
         // dispatcher's hidden window, and that is already the first WPF call

@@ -106,6 +106,11 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern uint GetDpiForWindow(IntPtr hWnd);
 
+    public const uint ASFW_ANY = unchecked((uint)-1);
+
+    [DllImport("user32.dll")]
+    public static extern bool AllowSetForegroundWindow(uint dwProcessId);
+
     /// <summary>
     /// Dark title bar. Without it the dashboard's chrome stays light while its
     /// contents are dark, which reads as a bug rather than a theme. Supported
