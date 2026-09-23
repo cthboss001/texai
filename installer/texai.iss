@@ -12,6 +12,11 @@
 AppId={{94B3C29A-EF00-4714-A224-76A16EA6BC84}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+; UpdateService reads the staged installer's ProductVersion to tell a newer
+; release from the one already installed. Inno already defaults it to
+; AppVersion; it is spelled out so that dependency is visible here.
+VersionInfoVersion={#MyAppVersion}
+VersionInfoProductVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\{#MyAppName}
 DefaultGroupName={#MyAppName}

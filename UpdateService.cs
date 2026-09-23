@@ -79,7 +79,7 @@ internal static class UpdateService
     /// </summary>
     public static bool TryApplyPendingUpdate()
     {
-        if (!File.Exists(PendingInstallerPath))
+        if (!HasNewerStagedInstaller())
         {
             return false;
         }
@@ -107,7 +107,7 @@ internal static class UpdateService
     {
         try
         {
-            if (File.Exists(PendingInstallerPath))
+            if (HasNewerStagedInstaller())
             {
                 return;
             }
@@ -141,6 +141,41 @@ internal static class UpdateService
             // is not worth surfacing as an app error, and the next scheduled
             // check simply tries again in twelve hours.
         }
+    }
+
+    /// <summary>
+    /// Nothing ever deletes the installer after it runs: it cannot delete itself,
+    /// and the texAi it relaunches starts while it is still exiting. Checking only
+    /// that the file exists therefore meant the relaunched texAi found the same
+    /// installer, ran it again, and was killed and relaunched by it, forever. The
+    /// installer's ProductVersion is its AppVersion (installer\texai.iss), so once
+    /// that release is the one running, the file is recognisably stale.
+    /// </summary>
+    private static bool HasNewerStagedInstaller()
+    {
+        try
+        {
+            if (!File.Exists(PendingInstallerPath))
+            {
+                return false;
+            }
+
+            // Inno pads this field with spaces to 50 characters ("2.0.4" plus 45).
+            string? version = FileVersionInfo.GetVersionInfo(PendingInstallerPath).ProductVersion?.Trim();
+            if (version is not null && IsNewer(version))
+            {
+                return true;
+            }
+        }
+        catch (FileNotFoundException)
+        {
+            return false;
+        }
+
+        // May fail while that installer is still running; the next launch, or the
+        // next check, tries again, and the version test keeps it from being run.
+        TryDelete(PendingInstallerPath);
+        return false;
     }
 
     private static string? FindInstallerAssetUrl(JsonElement release)
