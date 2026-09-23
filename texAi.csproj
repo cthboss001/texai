@@ -16,7 +16,7 @@
          UpdateService compares this against the latest tag, so a binary that
          ships under a higher tag than its own version re-downloads that release
          on every check, forever. v2.0.2 shipped as 2.0.1 and did exactly that. -->
-    <Version>2.0.3</Version>
+    <Version>2.0.4</Version>
   </PropertyGroup>
 
   <ItemGroup>

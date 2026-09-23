@@ -4,7 +4,7 @@
 
 #define MyAppName "texAi"
 ; Must match <Version> in texAi.csproj and the GitHub release tag.
-#define MyAppVersion "2.0.3"
+#define MyAppVersion "2.0.4"
 #define MyAppPublisher "cthboss001"
 #define MyAppExeName "texAi.exe"
 
