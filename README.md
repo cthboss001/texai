@@ -68,12 +68,29 @@ dotnet publish -c Release -r win-x64 --self-contained true -o publish
 It is around 160 MB because it carries the whole .NET desktop runtime.
 The installer's LZMA2 compresses that to roughly 50 MB.
 
-Deliberately not `-p:PublishSingleFile=true`. A single-file build unpacks its
-native WPF libraries into `%TEMP%\.net` on launch, and when that copy is
-missing or half-written the first window WPF creates throws
-`DllNotFoundException` from inside a window procedure, which takes the process
-down with nothing on screen. Since an installer is copying files anyway, the
-one-file trick bought nothing and cost a startup failure mode.
+Deliberately not `-p:PublishSingleFile=true`. A single-file WPF build leaves
+its native `_cor3` DLLs loose beside the exe unless
+`IncludeNativeLibrariesForSelfExtract` is also set, and 2.0.2 shipped exactly
+that way: see below.
+
+Run the installer from Explorer or an ordinary terminal. A terminal inside a
+packaged (MSIX) app, such as the Claude desktop app, sees a virtualised
+AppData: the install lands in that app's private copy, and the real
+`%LocalAppData%\texAi` that the Startup shortcut runs is left as it was.
+
+## When it would not open
+
+2.0.2 did not open at all. It was published single-file, and a single-file WPF
+build only bundles managed code: WPF's five native `_cor3` DLLs stay beside the
+exe unless `IncludeNativeLibrariesForSelfExtract` is set. The installer copied
+only `texAi.exe`, so every launch died with `DllNotFoundException` inside WPF's
+first window procedure, 16 times in the event log between 21 and 23 September
+2026. An exception there ends the process with no dialog, so it looked as if
+nothing had happened.
+
+2.0.3 fixed the packaging by shipping the whole publish folder. 2.0.4 also
+loads those DLLs itself before WPF starts (`WpfNativeLibraries.cs`), so if one
+is ever missing again you get a message naming it instead of silence.
 
 ## How it works
 

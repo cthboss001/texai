@@ -35,12 +35,11 @@ Name: "startupicon"; Description: "Start texAi automatically when Windows starts
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
 
 [Files]
-; The whole self-contained publish folder, not a one-file bundle. A
-; PublishSingleFile exe unpacks its native WPF libraries to %TEMP%\.net on
-; launch and throws DllNotFoundException out of a window procedure if that copy
-; is missing or half-written, which kills the process with no visible error.
-; Shipping the files as files removes the unpacking step, and the user never
-; sees the difference: this folder is %LocalAppData%\texAi either way.
+; The whole self-contained publish folder, not a one-file bundle. 2.0.2
+; shipped a PublishSingleFile exe on its own, and a single-file WPF build leaves
+; its native _cor3 DLLs loose beside the exe unless
+; IncludeNativeLibrariesForSelfExtract is set, so every launch died with
+; DllNotFoundException before any window existed.
 Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]

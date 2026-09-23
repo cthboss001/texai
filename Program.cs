@@ -14,6 +14,14 @@ internal static class Program
             return;
         }
 
+        // Before `new App()`: the Application constructor creates the
+        // dispatcher's hidden window, and that is already the first WPF call
+        // into PresentationNative_cor3.dll.
+        if (!WpfNativeLibraries.Load())
+        {
+            return;
+        }
+
         // OnExplicitShutdown because texAi has no main window: with the default
         // OnLastWindowClose, hiding the indicator after a rewrite would quit the
         // whole app.
