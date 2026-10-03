@@ -3,9 +3,7 @@
 Select text anywhere on Windows, press a hotkey, and a local Ollama model
 rewrites it in place. Grammar, translation, rewording, tone.
 
-![Fixing a sentence in Notepad with Ctrl+Alt+G](docs/demo.gif)
-
-[Watch the 48 second launch film on YouTube](https://www.youtube.com/watch?v=SJ28KY-cAAo)
+[![texAi launch film, 48 seconds. Click to watch on YouTube.](https://img.youtube.com/vi/SJ28KY-cAAo/maxresdefault.jpg)](https://www.youtube.com/watch?v=SJ28KY-cAAo)
 
 There is a tray icon and a dashboard, but no window sits in your way: the
 normal case is that you highlight something, press two keys, and the text
